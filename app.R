@@ -31,7 +31,7 @@ for (col in weather_cols) {
 # USER INTERFACE
 
 ui <- dashboardPage(
-  dashboardHeader(title = "OLFFAlert Dashboard"),
+  dashboardHeader(title = "CalOLFFx Dashboard"),
   
   dashboardSidebar(
     sidebarMenu(
