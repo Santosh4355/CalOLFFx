@@ -10,4 +10,4 @@ This repository holds the source code and data resources for a Shiny web applica
 -  Available for end users via web browser.
 
 ## Platform 
-The app is written in R using the `shiny` package and is meant to be used in a browser. The `shiny` package is licensed under GPL-3, and Shiny Server is typically installed on Linux systems such as Ubuntu/Debian, RedHat/CentOS, and related distributions.
+The app is written in R using the `shiny` package and is meant to be used in a browser. The `shiny` package is licensed under MIT, and Shiny Server is typically installed on Linux systems such as Ubuntu/Debian, RedHat/CentOS, and related distributions.
