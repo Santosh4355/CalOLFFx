@@ -1,4 +1,4 @@
-#REQUIRED LIBRARIES
+#Required Libraries
 library(shiny)
 library(dplyr)
 library(ggplot2)
@@ -8,10 +8,10 @@ library(shinydashboard)
 library(DT)
 library(scales)
 
-#LOAD THE DATA
+#Load the data
 df <- read.csv("Predictive modeling_olive fruit fly_2007 to 2024.csv", check.names = TRUE)
 
-#FORMAT DATE AND REGION 
+
 df$Date <- make_date(df$Year, df$Month, df$Day)
 df$Region <- as.character(df$Region)
 
@@ -26,6 +26,23 @@ weather_cols <- c(
 for (col in weather_cols) {
   if (col %in% names(df)) df[[col]] <- as.numeric(df[[col]])
 }
+
+
+readable_theme <- theme_bw(base_size = 17) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+    axis.title.x = element_text(size = 17, face = "bold", margin = margin(t = 12)),
+    axis.title.y = element_text(size = 17, face = "bold", margin = margin(r = 12)),
+    axis.text.x = element_text(size = 14, angle = 45, hjust = 1, vjust = 1),
+    axis.text.y = element_text(size = 14),
+    legend.title = element_text(size = 15, face = "bold"),
+    legend.text = element_text(size = 13),
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+    axis.line = element_line(color = "black", linewidth = 0.6),
+    panel.grid.minor = element_blank()
+  )
 
 
 # USER INTERFACE
@@ -99,11 +116,11 @@ ui <- dashboardPage(
     ),
     
     fluidRow(
-      box(plotlyOutput("olff_plot", height = 350), width = 12)
+      box(plotlyOutput("olff_plot", height = 470), width = 12)
     ),
     
     fluidRow(
-      box(plotlyOutput("weather_plot", height = 350), width = 12)
+      box(plotlyOutput("weather_plot", height = 470), width = 12)
     ),
     
     fluidRow(
@@ -119,7 +136,7 @@ server <- function(input, output, session) {
   
   region_filtered <- reactive({
     req(input$region_mode)
-     {
+    {
       df %>% filter(Region == input$region_mode)
     }
   })
@@ -210,22 +227,40 @@ server <- function(input, output, session) {
         )
       )
     ) +
-      geom_line(linewidth = 0.8) +
-      geom_point(size = 1.3, alpha = 0.8) +
+      geom_line(linewidth = 0.9) +
+      geom_point(size = 1.6, alpha = 0.85) +
       labs(
         title = "OLFF Population by Location",
         x = "Date",
-        y = "Total OLFF"
+        y = "Total OLFF",
+        color = "Location",
+        linetype = "Region"
       ) +
-      theme_minimal() +
-      theme(
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.text.x = element_text(angle = 45, hjust = 1)
-      )
+      readable_theme
     
-    ggplotly(p, tooltip = "text")
+    ggplotly(p, tooltip = "text") %>%
+      layout(
+        legend = list(
+          orientation = "h",
+          x = 0.5, xanchor = "center",
+          y = -0.4, yanchor = "top",
+          font = list(size = 14)
+        ),
+        margin = list(l = 100, r = 40, b = 160, t = 70),
+        xaxis = list(
+          automargin = TRUE, tickfont = list(size = 14),
+          title = list(font = list(size = 17)),
+          showline = TRUE, linewidth = 1.5, linecolor = "black", mirror = TRUE
+        ),
+        yaxis = list(
+          automargin = TRUE, tickfont = list(size = 14),
+          title = list(font = list(size = 17)),
+          showline = TRUE, linewidth = 1.5, linecolor = "black", mirror = TRUE
+        )
+      )
   })
   
+ 
   output$weather_plot <- renderPlotly({
     req(input$weather_var)
     
@@ -237,31 +272,65 @@ server <- function(input, output, session) {
       "Weekly_avg_soil_temp_.F." = "Avg_Soil_Temp_F"
     )
     
+    weather_label_map <- c(
+      "Weekly_average_temp_.F." = "Average Temperature (\u00B0F)",
+      "Weekly_average_prep_.inch." = "Average Precipitation (inch)",
+      "Weekly_average_RH" = "Average Relative Humidity (%)",
+      "Weekly_avg_wind_speed_.mph." = "Average Wind Speed (mph)",
+      "Weekly_avg_soil_temp_.F." = "Average Soil Temperature (\u00B0F)"
+    )
+    
     y_col <- weather_map[[input$weather_var]]
+    y_label <- weather_label_map[[input$weather_var]]
+    
+    plot_data <- filtered_data() %>%
+      arrange(Location, GroupDate)
     
     p <- ggplot(
-      filtered_data(),
-      aes_string(
-        x = "GroupDate",
-        y = y_col,
-        color = "Location",
-        linetype = "Region"
+      plot_data,
+      aes(
+        x = GroupDate,
+        y = .data[[y_col]],
+        color = Location,
+        group = interaction(Location, Region),
+        text = paste0(
+          "Region: ", Region,
+          "<br>Location: ", Location,
+          "<br>Date: ", GroupDate,
+          "<br>", y_label, ": ", round(.data[[y_col]], 2)
+        )
       )
     ) +
-      geom_line(linewidth = 0.8) +
-      geom_point(size = 1.3, alpha = 0.8) +
+      geom_line(linewidth = 1.1) +
+      geom_point(size = 1.2, alpha = 0.6) +
       labs(
         title = "Weather Comparison by Location",
         x = "Date",
-        y = y_col
+        y = y_label,
+        color = "Location"
       ) +
-      theme_minimal() +
-      theme(
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.text.x = element_text(angle = 45, hjust = 1)
-      )
+      readable_theme
     
-    ggplotly(p)
+    ggplotly(p, tooltip = "text") %>%
+      layout(
+        legend = list(
+          orientation = "h",
+          x = 0.5, xanchor = "center",
+          y = -0.4, yanchor = "top",
+          font = list(size = 14)
+        ),
+        margin = list(l = 100, r = 40, b = 160, t = 70),
+        xaxis = list(
+          automargin = TRUE, tickfont = list(size = 14),
+          title = list(font = list(size = 17)),
+          showline = TRUE, linewidth = 1.5, linecolor = "black", mirror = TRUE
+        ),
+        yaxis = list(
+          automargin = TRUE, tickfont = list(size = 14),
+          title = list(font = list(size = 17)),
+          showline = TRUE, linewidth = 1.5, linecolor = "black", mirror = TRUE
+        )
+      )
   })
   
   output$summary_table <- renderDT({
